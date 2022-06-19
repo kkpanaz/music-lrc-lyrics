@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from backends.base import GetLyricsBase
 from bs4 import BeautifulSoup
 import re
@@ -12,7 +13,7 @@ class GetLyricsMegalobiz(GetLyricsBase):
         self.__search_url = f"{self.__base_url}/search/all"
         self.__query_key = "qry"
 
-    def __get_link(self, title: str, artist: str, duration_secs: float):
+    def __get_link(self, title: str, artist: str, duration_secs: float) -> Optional[str]:
         params = f"{title}+{artist}".replace(" ", "+")
         try:
             response = self.session.get(url=self.__search_url, params={self.__query_key: params})
@@ -39,7 +40,7 @@ class GetLyricsMegalobiz(GetLyricsBase):
         _LOGGER.warning(f"Failed to get valid result for {title} - {artist}")
         return None
 
-    def get_lyrics(self, title, artist, duration_secs):
+    def get_lyrics(self, title: str, artist: str, duration_secs: int) -> Optional[str]:
         link = self.__get_link(title, artist, duration_secs)
         if not link:
             return None

@@ -7,12 +7,12 @@ import logging
 
 _LOGGER = logging.getLogger(__name__)
 
-def get_args():
+def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser("Get lyrics from a range of websites and save them in LRC format.")
-    parser.add_argument("-b", "--backend", help="Which website to use as a backend.", action="append", default=helpers.get_all_backends())
-    parser.add_argument("-i", "--input-file", help="Path of file containing songs to get lyrics for.", type=str, default="sample/input.txt")
-    parser.add_argument("-s", "--input-separator", help="Separator that the input file is using.", type=str, default="|")
-    parser.add_argument("-o", "--output-folder", help="Folder where LRC lyrics should be saved.", type=str, default="sample/output/")
+    parser.add_argument("-b", "--backend", help="Which website to use as a backend. Multiple can be specified. Uses all available backends by default.", action="append", default=helpers.get_all_backends())
+    parser.add_argument("-i", "--input-file", help="Path of file containing songs to get lyrics for. Using sample input by default.", type=str, default="sample/input.txt")
+    parser.add_argument("-s", "--input-separator", help="Separator that the input file is using. Uses `|` by default.", type=str, default="|")
+    parser.add_argument("-o", "--output-folder", help="Folder where LRC lyrics should be saved. Uses sample output by default.", type=str, default="sample/output/")
     args = parser.parse_args()
     _LOGGER.info(f"Args: {args}")
 
@@ -32,7 +32,7 @@ def get_args():
 
     return args
 
-def main():
+def main() -> None:
     logging.basicConfig(level=logging.INFO)
     args = get_args()
     get_lyrics = LyricsGetter(args.backends, args.input_path, args.output_path, args.input_separator)

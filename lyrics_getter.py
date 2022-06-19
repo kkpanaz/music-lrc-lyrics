@@ -1,12 +1,15 @@
 import math
+from pathlib import Path
 import re
+from backends.base import GetLyricsBase
 
 import logging
+from typing import List, Tuple
 
 _LOGGER = logging.getLogger(__name__)
 
 class LyricsGetter:
-    def __init__(self, backends, input_path, output_root, separator):
+    def __init__(self, backends: List[GetLyricsBase], input_path: Path, output_root: Path, separator: str):
         self.__backends = backends
         self.__input_path = input_path
         self.__output_root = output_root
@@ -16,8 +19,8 @@ class LyricsGetter:
         with open(self.__failed_path, 'w'):
             # Clear failed file
             pass
-  
-    def __import_spotify_playlist(self):
+
+    def __import_spotify_playlist(self) -> List[Tuple[str, str, int]]:
         with open(self.__input_path) as file:
             data = []
             for line in file.readlines():
@@ -27,16 +30,16 @@ class LyricsGetter:
                 data.append((title.strip(), artist.strip(), time_secs))
         return data
 
-    def __get_output_file_path(self, title, artist):
+    def __get_output_file_path(self, title: str, artist: str) -> Path:
         return self.__output_root/artist/f"{title}.lrc"
 
-    def __save_lyrics_file(self, title, artist, lyrics):
+    def __save_lyrics_file(self, title: str, artist: str, lyrics: str) -> None:
         output = self.__get_output_file_path(title, artist)
         output.parent.mkdir(exist_ok=True)
         with open(output, 'w') as file:
             file.write(lyrics)
 
-    def __save_song_as_failed(self, title, artist, duration: int):
+    def __save_song_as_failed(self, title: str, artist: str, duration: int) -> None:
         hours = math.floor(duration / 3600)
         duration -= hours * 3600
         mins = math.floor(duration / 60)
@@ -45,7 +48,7 @@ class LyricsGetter:
             data = self.__separator.join([artist, title, f"{hours:02d}:{mins:02d}:{duration:02d}"])
             file.write(f"{data}\n")
 
-    def run(self):
+    def run(self) -> None:
         data = self.__import_spotify_playlist()
         num_skipped = 0
         num_saved = 0
