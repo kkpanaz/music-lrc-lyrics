@@ -1,7 +1,9 @@
 import logging
 from typing import Optional
 from backends.base import GetLyricsBase
-from bs4 import BeautifulSoup, ResultSet, SoupStrainer
+from bs4 import BeautifulSoup, SoupStrainer
+
+# For Beautiful Soup speed
 import lxml
 import cchardet
 
@@ -45,6 +47,10 @@ class GetLyricsMegalobiz(GetLyricsBase):
         _LOGGER.debug(f"Failed to get valid link for {title} - {artist}")
         return None
 
+    def __scrub_lyrics(self, lyrics: str) -> str:
+        # Nothing to scrub
+        return lyrics
+
     def get_lyrics(
         self, title_raw: str, artist_raw: str, duration_raw: int
     ) -> Optional[str]:
@@ -61,9 +67,9 @@ class GetLyricsMegalobiz(GetLyricsBase):
                 "div", attrs={"class": "lyrics_details entity_more_info"}
             )
             result = BeautifulSoup(response.text, "lxml", parse_only=strainer)
-            lyrics = result.find("span").get_text()
+            lyrics = result.find("span").get_text(separator="\n", strip=True)
             _LOGGER.debug(f"Got lyrics for: {title} - {artist}")
-            return lyrics
+            return self.__scrub_lyrics(lyrics)
         except Exception:
             _LOGGER.exception(f"Could not get lyrics from link: {url}")
             return None

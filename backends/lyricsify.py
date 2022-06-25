@@ -1,5 +1,4 @@
 import logging
-import re
 from typing import Optional
 from backends.base import GetLyricsBase
 from bs4 import BeautifulSoup, SoupStrainer
@@ -11,14 +10,14 @@ import cchardet
 _LOGGER = logging.getLogger(__name__)
 
 
-class GetLyricsRCLyricsBand(GetLyricsBase):
+class GetLyricsLyricsify(GetLyricsBase):
     def __init__(self, args):
         super().__init__(args)
-        self.name = "rclyricsband"
+        self.name = "lyricsify"
         self.has_timestamps = True
-        self.__base_url = "https://rclyricsband.com"
-        self.__search_url = self.__base_url
-        self.__query_key = "s"
+        self.__base_url = "https://www.lyricsify.com"
+        self.__search_url = f"{self.__base_url}/search"
+        self.__query_key = "q"
 
     def __get_link(
         self, title: str, artist: str, duration_secs: float
@@ -27,14 +26,17 @@ class GetLyricsRCLyricsBand(GetLyricsBase):
         params = "+".join(title.split() + artist.split())
         try:
             response = self.session.get(
-                url=self.__search_url, params={self.__query_key: params}
+                url=self.__search_url,
+                params={self.__query_key: params},
+                headers=self.request_headers,
             )
             response.raise_for_status()
-            strainer = SoupStrainer("div", attrs={"id": "content"})
+            strainer = SoupStrainer("div", attrs={"class": "row ul"})
             results = BeautifulSoup(response.text, "lxml", parse_only=strainer)
-            for result in results.find_all("a"):
+            for result in results.find_all("a", attrs={"class": "title"}):
                 result_text = result.text.strip().lower()
-                if not self.validate_result(title, artist, duration_secs, result_text):
+                # Results don't list time so don't use it to validate the song
+                if not self.validate_result(title, artist, None, result_text):
                     continue
                 link = result.get_attribute_list(key="href")[0]
                 _LOGGER.debug(f"Got link for: {title} - {artist}: {link}")
@@ -49,32 +51,8 @@ class GetLyricsRCLyricsBand(GetLyricsBase):
         return None
 
     def __scrub_lyrics(self, lyrics: str) -> str:
-        lines = lyrics.split("\n")
-
-        # Split first line of lyrics from information
-        indexes = [pos for pos, char in enumerate(lines[0]) if char == "["]
-        first_line_index = indexes[-2]
-        info = lines[0][:first_line_index]
-        first_line = lines[0][first_line_index:]
-        lines[0] = first_line
-
-        for count, line in enumerate(lines):
-            # Remove extra website labels
-            lines[count] = line.replace("[re:www.rclyricsband.com]", "")
-
-            # Remove second time stamp (to match other backends)
-            # Happy to remove if others want this second timestamp
-            second_timestamp = lines[count][10:20]
-            if re.match(rf"^{self.time_regex}$", second_timestamp):
-                lines[count] = lines[count].replace(second_timestamp, "")
-
-        # Add back in info sections split into new lines
-        info_indexes = indexes[1:-2]
-        for index in info_indexes[::-1]:
-            lines.insert(0, info[index:])
-            info = info[:index]
-
-        return "\n".join(lines)
+        # Nothing to scrub
+        return lyrics
 
     def get_lyrics(
         self, title_raw: str, artist_raw: str, duration_raw: int
@@ -84,16 +62,18 @@ class GetLyricsRCLyricsBand(GetLyricsBase):
         link = self.__get_link(title, artist, duration)
         if not link:
             return None
+        url = f"{self.__base_url}{link}"
         try:
-            response = self.session.get(url=link)
-            response.raise_for_status()
-            strainer = SoupStrainer(
-                "div", attrs={"class": "su-box-content su-u-clearfix su-u-trim"}
+            response = self.session.get(
+                url=url,
+                headers=self.request_headers,
             )
+            response.raise_for_status()
+            strainer = SoupStrainer("div", attrs={"id": "entry"})
             result = BeautifulSoup(response.text, "lxml", parse_only=strainer)
             lyrics = result.get_text(separator="\n", strip=True)
             _LOGGER.debug(f"Got lyrics for: {title} - {artist}")
             return self.__scrub_lyrics(lyrics)
         except Exception:
-            _LOGGER.exception(f"Could not get lyrics from link: {link}")
+            _LOGGER.exception(f"Could not get lyrics from link: {url}")
             return None

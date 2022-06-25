@@ -3,14 +3,16 @@ from backends.megalobiz import GetLyricsMegalobiz
 from backends.base import GetLyricsBase
 from backends.genius import GetLyricsGenius
 from backends.rclyricsband import GetLyricsRCLyricsBand
+from backends.lyricsify import GetLyricsLyricsify
 
 import logging
 
 _LOGGER = logging.getLogger(__name__)
 
 _BACKENDS_WITH_TIMESTAMPS = {
-    "megalobiz": GetLyricsMegalobiz,
+    "lyricsify": GetLyricsLyricsify,
     "rclyricsband": GetLyricsRCLyricsBand,
+    "megalobiz": GetLyricsMegalobiz,
 }
 _BACKENDS_NO_TIMESTAMPS = {"genius": GetLyricsGenius}
 

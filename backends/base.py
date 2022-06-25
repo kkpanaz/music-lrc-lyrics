@@ -12,6 +12,7 @@ class GetLyricsBase:
         self.name = "base"
         self.has_timestamps = False
         self.session = requests.Session()
+        self.request_headers = {"User-Agent": "Chrome/103.0.5060.53"}
         self.duration_padding = 5
         self.time_regex = r"\[(\d{2}):(\d{2}.\d{2})\]"
         self.ignore_keywords_in_title_brackets = [
@@ -86,7 +87,7 @@ class GetLyricsBase:
         return title, artist, dur_secs
 
     def validate_result(
-        self, title: str, artist: str, duration_secs: int, result_str: str
+        self, title: str, artist: str, duration_secs: Optional[int], result_str: str
     ) -> bool:
         # Validate title and artist
         parts = title.split() + artist.split()
@@ -97,7 +98,7 @@ class GetLyricsBase:
             return False
 
         # Duration doesn't need to be validated if lyrics don't have timestamps
-        if not self.has_timestamps:
+        if not self.has_timestamps or not duration_secs:
             return True
 
         # Validate duration
