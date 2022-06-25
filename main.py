@@ -1,8 +1,8 @@
+from distutils.debug import DEBUG
 from pathlib import Path
 import argparse
 from backends import helpers
 from lyrics_getter import LyricsGetter
-from pprint import pformat
 
 import logging
 
@@ -16,19 +16,25 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("-o", "--output-folder", help="Folder where LRC lyrics should be saved. Uses sample output by default.", type=str, default="sample/output/")
     parser.add_argument("--no-timestamp-fallback", help="Store lyrics without timestamps (in txt file) if no timed lyrics found. Will append all non-timestamp backends onto existing list. Default false.", action="store_true")
     parser.add_argument("--genius-access-token", help="An access token provided from your free Genius account.", type=str, default=None)
+    parser.add_argument("-v", "--verbose", help="Set logging level to verbose/debug.", action="store_true")
     args = parser.parse_args()
-    _LOGGER.info(f"Args: {pformat(vars(args))}")
+
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(level=log_level)
 
     args.input_path = Path(Path.cwd(), args.input_file)
-    _LOGGER.info(f"Using input path: {args.input_path}")
-
     args.output_path = Path(Path.cwd(), args.output_folder)
-    _LOGGER.info(f"Using output path: {args.output_path}")
 
     if not args.backend:
         args.backend = helpers.get_all_backends()
     if args.no_timestamp_fallback:
         args.backend.extend(helpers.get_all_no_timestamp_backends())
+
+    dont_print_args = ["genius-access-token"]
+    _LOGGER.debug(f"Args:")
+    for key, value in vars(args).items():
+        if key not in dont_print_args:
+            _LOGGER.debug(f"    {key}: {value}")
 
     timestamp_backends = []
     non_timestamp_backends = []
@@ -51,10 +57,12 @@ def get_args() -> argparse.Namespace:
     # Enfore that we use timestamp backends first
     args.backends = timestamp_backends + non_timestamp_backends
 
+    if not args.backends:
+        raise ValueError("No valid backends provided")
+
     return args
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO)
     args = get_args()
     get_lyrics = LyricsGetter(args.backends, args.input_path, args.output_path, args.input_separator)
     get_lyrics.run()

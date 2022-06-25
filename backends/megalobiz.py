@@ -1,8 +1,9 @@
 import logging
 from typing import Optional
 from backends.base import GetLyricsBase
-from bs4 import BeautifulSoup
-import re
+from bs4 import BeautifulSoup, SoupStrainer
+import lxml
+import cchardet
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,8 +22,8 @@ class GetLyricsMegalobiz(GetLyricsBase):
         try:
             response = self.session.get(url=self.__search_url, params={self.__query_key: params})
             response.raise_for_status()
-            parsed_html = BeautifulSoup(response.text, features="lxml")
-            results = parsed_html.body.find_all('a', attrs={'class':'entity_name'})
+            strainer = SoupStrainer('a', attrs={'class': 'entity_name'})
+            results = BeautifulSoup(response.text, 'lxml', parse_only=strainer)
             for result in results:
                 result_text = result.text.strip().lower()
                 if not self.validate_result(title, artist, duration_secs, result_text):

@@ -22,7 +22,6 @@ def get_backend_class(backend: str) -> Optional[List[GetLyricsBase]]:
     if be_lower in _BACKENDS_WITH_TIMESTAMPS:
         return _BACKENDS_WITH_TIMESTAMPS[be_lower]
     if be_lower in _BACKENDS_NO_TIMESTAMPS:
-        _LOGGER.warning(f"Generating lyrics without timestamps using backend: {backend}")
         return _BACKENDS_NO_TIMESTAMPS[be_lower]
     return None
 

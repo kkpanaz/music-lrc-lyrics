@@ -61,10 +61,17 @@ class GetLyricsBase:
         return title, artist, dur_secs
 
     def validate_result(self, title: str, artist: str, duration_secs: int, result_str: str) -> bool:
+        # Validate title and artist
         parts = title.split() + artist.split()
-        if not all([part in result_str for part in parts]):
+        if not all([part.lower() in result_str.lower() for part in parts]):
             _LOGGER.debug(f"Invalid result for: {title} - {artist}: {result_str} failed: No matching title and artist")
             return False
+
+        # Duration doesn't need to be validated if lyrics don't have timestamps
+        if not self.has_timestamps:
+            return True
+        
+        # Validate duration
         time_match = re.findall(r'.*\[(\d{2}):(\d{2}.\d{2})\]', result_str)
         if not time_match:
             _LOGGER.debug(f"Invalid result for: {title} - {artist}: {result_str} failed: No valid time stamp")
