@@ -29,7 +29,7 @@ class GetLyricsGenius(GetLyricsBase):
         )
         self.remove_words_from_title_artist = []
 
-    def __scrub_lyrics(self, result_title: str, lyrics: str) -> str:
+    def scrub_lyrics(self, result_title: str, lyrics: str) -> str:
         # Remove "<title> Lyrics" header
         lyrics = re.sub(rf"^{result_title} Lyrics", "", lyrics)
 
@@ -48,7 +48,7 @@ class GetLyricsGenius(GetLyricsBase):
             song = self.__genius.search_song(title, artist, get_full_info=False)
             if song and self.validate_result(title, artist, duration, song.full_title):
                 _LOGGER.debug(f"Got lyrics for: {title} - {artist}")
-                return self.__scrub_lyrics(song.title, song.lyrics)
+                return self.scrub_lyrics(song.title, song.lyrics)
             return None
         except Exception:
             _LOGGER.exception(f"Could not get lyrics for: {title} - {artist}")

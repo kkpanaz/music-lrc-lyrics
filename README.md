@@ -4,10 +4,11 @@ Get lyrics for all your faviourite songs in LRC format using a range of backends
 Also includes fallback integrations to get lyrics without timestamps (if lyrics with timestamps can't be found). These will be stored in TXT format (not LRC).
 
 ## Backends Supported
-- [Megalobiz](https://www.megalobiz.com/)
+- [Lyricsify](https://www.lyricsify.com/)
 - [RCLyricsBand](https://rclyricsband.com/)
+- [Megalobiz](https://www.megalobiz.com/)
 
-## Fallback Backends (no timestamps)
+## Fallback Backends Supported (no timestamps)
 - [Genius](https://genius.com/)
 
 ## How To Use
