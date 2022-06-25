@@ -5,6 +5,7 @@ Also includes fallback integrations to get lyrics without timestamps (if lyrics 
 
 ## Backends Supported
 - [Megalobiz](https://www.megalobiz.com/)
+- [RCLyricsBand](https://rclyricsband.com/)
 
 ## Fallback Backends (no timestamps)
 - [Genius](https://genius.com/)
