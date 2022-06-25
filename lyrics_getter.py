@@ -20,7 +20,12 @@ class LyricsGetter:
             # Clear failed file
             pass
 
-
+        got_no_timestamp_backend = False
+        for backend in self.__backends:
+            if got_no_timestamp_backend and backend.has_timestamps:
+                raise ValueError("Backends must have all timestamp backends before non-timestamp backends")
+            if not backend.has_timestamps:
+                got_no_timestamp_backend = True
 
     def __import_spotify_playlist(self) -> List[Tuple[str, str, int]]:
         with open(self.__input_path) as file:
@@ -34,11 +39,13 @@ class LyricsGetter:
                 data.append((title.strip(), artist.strip(), time.strip()))
         return data
 
-    def __get_output_file_path(self, title: str, artist: str) -> Path:
-        return self.__output_root/artist/f"{title}.lrc"
+    def __get_output_file_path(self, title: str, artist: str, timestamps: bool) -> Path:
+        extension = "lrc" if timestamps else "txt"
+        return self.__output_root/artist/f"{title}.{extension}"
 
-    def __save_lyrics_file(self, title: str, artist: str, lyrics: str) -> None:
-        output = self.__get_output_file_path(title, artist)
+
+    def __save_lyrics_file(self, title: str, artist: str, lyrics: str, timestamps: bool) -> None:
+        output = self.__get_output_file_path(title, artist, timestamps)
         output.parent.mkdir(exist_ok=True)
         try:
             with open(output, 'w') as file:
@@ -58,26 +65,29 @@ class LyricsGetter:
         num_failed = 0
         _LOGGER.info(f"Getting lyrics for {len(data)} songs")
         for title, artist, duration in data:
-            lyric_file = self.__get_output_file_path(title, artist)
+            lyric_file = self.__get_output_file_path(title, artist, True)
             if lyric_file.exists():
                 _LOGGER.debug(f"Skipping lyrics that exist: {title} - {artist}")
                 num_skipped += 1
                 continue
 
+            non_timed_lyrics_exist = self.__get_output_file_path(title, artist, False).exists()
+
             lyrics = None
+            existing_lyrics = False
             for backend in self.__backends:
-                uniform_title, uniform_artist, uniform_duration = backend.uniformise(title, artist, duration)
-                if not uniform_title or not uniform_artist or not uniform_duration:
-                    _LOGGER.debug(f"Failed to uniformise: {title} - {artist} using backend {backend.name}")
-                    continue
-                lyrics = backend.get_lyrics(uniform_title, uniform_artist, uniform_duration)
+                # This means we have failed to get timestamp lyrics but already have non-timestamped lyrics
+                if not backend.has_timestamps and non_timed_lyrics_exist:
+                    existing_lyrics = True
+                    break
+                lyrics = backend.get_lyrics(title, artist, duration)
                 if lyrics:
                     break
             if lyrics:
-                self.__save_lyrics_file(title, artist, lyrics)
+                self.__save_lyrics_file(title, artist, lyrics, True)
                 num_saved += 1
                 _LOGGER.debug(f"Successfully got lyrics for: {title} - {artist}")
-            else:
+            elif not existing_lyrics:
                 self.__save_song_as_failed(title, artist, duration)
                 num_failed += 1
                 _LOGGER.debug(f"Failed to get lyrics for: {title} - {artist}")

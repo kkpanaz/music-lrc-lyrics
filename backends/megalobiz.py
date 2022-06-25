@@ -7,17 +7,17 @@ import re
 _LOGGER = logging.getLogger(__name__)
 
 class GetLyricsMegalobiz(GetLyricsBase):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, args):
+        super().__init__(args)
         self.name = "megalobiz"
+        self.has_timestamps = True
         self.__base_url = "https://www.megalobiz.com"
         self.__search_url = f"{self.__base_url}/search/all"
         self.__query_key = "qry"
 
     def __get_link(self, title: str, artist: str, duration_secs: float) -> Optional[str]:
         _LOGGER.debug(f"Getting link for: {title} - {artist}")
-        parts = title.split() + artist.split()
-        params = "+".join(parts)
+        params = "+".join(title.split() + artist.split())
         try:
             response = self.session.get(url=self.__search_url, params={self.__query_key: params})
             response.raise_for_status()
@@ -25,18 +25,7 @@ class GetLyricsMegalobiz(GetLyricsBase):
             results = parsed_html.body.find_all('a', attrs={'class':'entity_name'})
             for result in results:
                 result_text = result.text.strip().lower()
-                if not all([part in result_text for part in parts]):
-                    _LOGGER.debug(f"Link result for: {title} - {artist}: {result_text} failed: No matching title and artist")
-                    continue
-                time_match = re.findall(r'.*\[(\d{2}):(\d{2}.\d{2})\]', result_text)
-                if not time_match:
-                    _LOGGER.debug(f"Link result for: {title} - {artist}: {result_text} failed: No valid time stamp")
-                    continue
-                mins, secs = time_match[-1]
-                time_secs = int(mins)*60 + float(secs)
-                valid_time = abs(time_secs - duration_secs) <= self.durantion_padding
-                if not valid_time:
-                    _LOGGER.debug(f"Link result for: {title} - {artist}: {result_text} failed: Out of time range (padding={self.durantion_padding})")
+                if not self.validate_result(title, artist, duration_secs, result_text):
                     continue
                 link = result.get_attribute_list(key="href")[0]
                 _LOGGER.debug(f"Got link for: {title} - {artist}: {link}")
@@ -48,9 +37,10 @@ class GetLyricsMegalobiz(GetLyricsBase):
         _LOGGER.debug(f"Failed to get valid link for {title} - {artist}")
         return None
 
-    def get_lyrics(self, title: str, artist: str, duration_secs: int) -> Optional[str]:
+    def get_lyrics(self, title_raw: str, artist_raw: str, duration_raw: int) -> Optional[str]:
+        title, artist, duration = self.standardise(title_raw, artist_raw, duration_raw)
         _LOGGER.debug(f"Getting lyrics for: {title} - {artist}")
-        link = self.__get_link(title, artist, duration_secs)
+        link = self.__get_link(title, artist, duration)
         if not link:
             return None
         url = f"{self.__base_url}{link}"
