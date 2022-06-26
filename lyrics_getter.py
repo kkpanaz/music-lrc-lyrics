@@ -62,8 +62,10 @@ class LyricsGetter:
         try:
             with open(output, "w", encoding="utf-8") as file:
                 file.write(lyrics)
-        except Exception:
-            _LOGGER.exception(f"Cannot write lyrics of {title} - {artist} to {output}")
+        except Exception as ex:
+            _LOGGER.debug(
+                f"Cannot write lyrics of {title} - {artist} to {output}: {ex}"
+            )
             return
 
         if timestamps:
@@ -117,7 +119,7 @@ class LyricsGetter:
             if not found_lyrics:
                 self.__save_song_as_failed(title, artist, duration)
                 num_failed += 1
-                _LOGGER.debug(f"Failed to get lyrics for: {title} - {artist}")
+                _LOGGER.info(f"Failed to get lyrics for: {title} - {artist}")
 
             if (count + 1) % 5 == 0:
                 _LOGGER.info(f"Progress: {count+1}/{total} (Failed={num_failed})")

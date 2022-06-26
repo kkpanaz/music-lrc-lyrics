@@ -50,6 +50,6 @@ class GetLyricsGenius(GetLyricsBase):
                 _LOGGER.debug(f"Got lyrics for: {title} - {artist}")
                 return self.scrub_lyrics(song.title, song.lyrics)
             return None
-        except Exception:
-            _LOGGER.exception(f"Could not get lyrics for: {title} - {artist}")
+        except Exception as ex:
+            _LOGGER.debug(f"Could not get lyrics for: {title} - {artist}: {ex}")
             return None

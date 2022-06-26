@@ -68,7 +68,7 @@ class GetLyricsBase:
         title, artist, duration = self.standardise(title_raw, artist_raw, duration_raw)
         if not duration and self.validate_duration:
             return None
-        _LOGGER.debug(f"Getting lyrics for: {title} - {artist}")
+        _LOGGER.debug(f"{self.name}: Getting lyrics for: {title} - {artist}")
         link = self.get_link(title, artist, duration)
         if not link:
             return None
@@ -83,10 +83,10 @@ class GetLyricsBase:
             strainer = SoupStrainer(**self.lyrics_strainer_args)
             result = BeautifulSoup(response.text, "lxml", parse_only=strainer)
             lyrics = result.get_text(separator="\n", strip=True)
-            _LOGGER.debug(f"Got lyrics for: {title} - {artist}")
+            _LOGGER.debug(f"{self.name}: Got lyrics for: {title} - {artist}")
             return self.scrub_lyrics(lyrics)
-        except Exception:
-            _LOGGER.exception(f"Could not get lyrics from link: {link}")
+        except Exception as ex:
+            _LOGGER.debug(f"{self.name}: Could not get lyrics from link: {link}: {ex}")
             return None
 
     ### HELPER FUNCTIONS (FOR IMPLEMENTATIONS TO OVERRIDE) ###
@@ -96,7 +96,7 @@ class GetLyricsBase:
     ) -> Optional[str]:
         assert self.base_url and self.search_url and self.query_key
         assert self.link_strainer_args and self.link_result_args
-        _LOGGER.debug(f"Getting link for: {title} - {artist}")
+        _LOGGER.debug(f"{self.name}: Getting link for: {title} - {artist}")
         duration = duration_secs if self.validate_duration else None
         params = "+".join(title.split() + artist.split())
         try:
@@ -113,15 +113,17 @@ class GetLyricsBase:
                 result_text = result.text.strip().lower()
                 if self.validate_result(title, artist, duration, result_text):
                     link = result.get_attribute_list(key="href")[0]
-                    _LOGGER.debug(f"Got link for: {title} - {artist}: {link}")
+                    _LOGGER.debug(
+                        f"{self.name}: Got link for: {title} - {artist}: {link}"
+                    )
                     return link
             _LOGGER.debug(
-                f"Failed to get valid link for {title} - {artist} from {len(results)} results"
+                f"{self.name}: Failed to get valid link for {title} - {artist} from {len(results)} results"
             )
             return None
-        except Exception:
-            _LOGGER.exception(
-                f"Could not get link to lyrics from search result: {self.query_key}={params}"
+        except Exception as ex:
+            _LOGGER.debug(
+                f"{self.name}: Could not get link to lyrics from search result: {self.query_key}?={params}: {ex}"
             )
             return None
 
@@ -169,7 +171,9 @@ class GetLyricsBase:
         duration = duration.strip()
         duration_parts = re.findall(r"^(\d{2}):(\d{2}):(\d{2})$", duration)
         if not duration_parts or len(duration_parts) != 1:
-            _LOGGER.debug(f"Failed to standardise: {duration} does not match HH:MM:SS")
+            _LOGGER.debug(
+                f"{self.name}: Failed to standardise: {duration} does not match HH:MM:SS"
+            )
             return None
         hours, mins, secs = duration_parts[0]
         return int(hours) * 3600 + int(mins) * 60 + int(secs)
@@ -189,7 +193,7 @@ class GetLyricsBase:
         parts = title.split() + artist.split()
         if not all([part.lower() in result_str.lower() for part in parts]):
             _LOGGER.debug(
-                f"Invalid result for: {title} - {artist}: {result_str} failed: No matching title and artist"
+                f"{self.name}: Invalid result for: {title} - {artist}: {result_str} failed: No matching title and artist"
             )
             return False
 
@@ -201,7 +205,7 @@ class GetLyricsBase:
         time_match = re.findall(rf".*{self.time_regex}", result_str)
         if not time_match:
             _LOGGER.debug(
-                f"Invalid result for: {title} - {artist}: {result_str} failed: No valid time stamp"
+                f"{self.name}: Invalid result for: {title} - {artist}: {result_str} failed: No valid time stamp"
             )
             return False
         mins, secs = time_match[-1]
@@ -209,7 +213,7 @@ class GetLyricsBase:
         valid_time = abs(time_secs - duration_secs) <= self.duration_padding
         if not valid_time:
             _LOGGER.debug(
-                f"Invalid result for: {title} - {artist}: {result_str} failed: Out of time range (padding={self.duration_padding})"
+                f"{self.name}: Invalid result for: {title} - {artist}: {result_str} failed: Out of time range (padding={self.duration_padding})"
             )
             return False
         return True
